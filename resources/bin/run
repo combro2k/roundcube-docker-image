@@ -1,43 +1,16 @@
 #!/bin/bash -e
 
-if [ ! -d "/data/plugins" ]; then
-    cp -rp /opt/roundcube/plugins /data/plugins
-    rm -fr /opt/roundcube/plugins
-fi
+[ ! -d "/data/plugins" ] && cp -rp /opt/roundcube/plugins /data/plugins && rm -fr /opt/roundcube/plugins
+[ ! -L "/opt/roundcube/plugins" ] && rm -fr /opt/roundcube/plugins && ln -s /data/plugins /opt/roundcube/plugins
+[ ! -d "/data/config" ] && mkdir -p /data/config
+[ ! -d "/data/logs" ] && mkdir -p /data/logs
+[ ! -f "/data/config/config.inc.php" ] && echo -e "<?php\n\$config['enable_installer'] = false;" > /data/config/config.inc.php
+[ ! -e "/data/config/php-user.ini" ] && echo "date.timezone = 'Europe/Amsterdam'" > /data/config/php-user.ini
+[ -e "/data/config/php-user.ini" -a ! -e "/etc/php5/fpm/conf.d/999-user.ini" ] && ln -s /data/config/php-user.ini /etc/php5/fpm/conf.d/999-user.ini
 
-if [ ! -L "/opt/roundcube/plugins" ]; then
-    rm -fr /opt/roundcube/plugins
-    ln -s /data/plugins /opt/roundcube/plugins
-fi
+# Be sure the owner is www-data
+chown www-data:www-data /data -R
 
-if [ ! -d "/data/config" ]; then
-    mkdir -p /data/config
-fi
-
-if [ ! -d "/data/logs" ]; then
-    mkdir -p /data/logs
-fi
-
-if [ ! -f "/data/config/config.inc.php" ]; then
-    cat > /data/config/config.inc.php <<'EOF'
-<?php
-$config['enable_installer'] = false;
-EOF
-fi
-
-if [ ! -e "/data/config/php-user.ini" ]; then
-    cat > /data/config/php-user.ini <<'EOF'
-date.timezone = 'Europe/Amsterdam'
-EOF
-fi
-
-if [[ -e "/data/config/php-user.ini" ]] && [[ ! -e "/etc/php5/fpm/conf.d/999-user.ini" ]]
-then
-    ln -s /data/config/php-user.ini /etc/php5/fpm/conf.d/999-user.ini
-fi
-
-if ! service php5-fpm status > /dev/null 2>&1; then
-    service php5-fpm start
-fi
+service php5-fpm status > /dev/null 2>&1 || service php5-fpm start
 
 exec /usr/sbin/nginx
