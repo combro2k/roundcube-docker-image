@@ -14,6 +14,7 @@ RUN /bin/bash -l -c 'bash /usr/local/bin/setup.sh build'
 
 # Add remaining resources
 ADD resources/etc/ /etc/
+ADD resources/opt/ /opt/
 
 # Run the last bits and clean up
 RUN /bin/bash -l -c 'bash /usr/local/bin/setup.sh post_install' | tee -a ${INSTALL_LOG} > /dev/null 2>&1 || exit 1

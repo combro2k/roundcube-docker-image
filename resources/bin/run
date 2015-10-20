@@ -1,5 +1,15 @@
 #!/bin/bash -e
 
+if [ ! -d "/data/plugins" ]; then
+    cp -rp /opt/roundcube/plugins /data/plugins
+    rm -fr /opt/roundcube/plugins
+fi
+
+if [ ! -L "/opt/roundcube/plugins" ]; then
+    rm -fr /opt/roundcube/plugins
+    ln -s /data/plugins /opt/roundcube/plugins
+fi
+
 if [ ! -d "/data/config" ]; then
     mkdir -p /data/config
 fi
@@ -9,20 +19,25 @@ if [ ! -d "/data/logs" ]; then
 fi
 
 if [ ! -f "/data/config/config.inc.php" ]; then
-    cp /opt/roundcube/config/config.inc.php.sample /data/config/config.inc.php
-    ln -s /data/config/config.inc.php /opt/roundcube/config/config.inc.php
+    cat > /data/config/config.inc.php <<'EOF'
+<?php
+$config['enable_installer'] = false;
+EOF
 fi
 
-if [ ! -L "/opt/roundcube/config/config.inc.php" ]; then
-    if [ -f "/opt/roundcube/config/config.inc.php" ]; then
-        rm /opt/roundcube/config/config.inc.php
-    fi
-
-    ln -s /data/config/config.inc.php /opt/roundcube/config/config.inc.php
+if [ ! -e "/data/config/php-user.ini" ]; then
+    cat > /data/config/php-user.ini <<'EOF'
+date.timezone = 'Europe/Amsterdam'
+EOF
 fi
 
-service php5-fpm start
+if [[ -e "/data/config/php-user.ini" ]] && [[ ! -e "/etc/php5/fpm/conf.d/999-user.ini" ]]
+then
+    ln -s /data/config/php-user.ini /etc/php5/fpm/conf.d/999-user.ini
+fi
 
-chmod 666 /var/run/php5-fpm.sock
+if ! service php5-fpm status > /dev/null 2>&1; then
+    service php5-fpm start
+fi
 
-/usr/sbin/nginx
+exec /usr/sbin/nginx

@@ -7,22 +7,25 @@ export ROUNDCUBE_VERSION="1.0.7"
 
 # Packages
 export PACKAGES=(
+	'curl'
+	'git'
+	'libssh2-php'
 	'nginx'
+	'php5-cli'
+	'php5-curl'
+	'php5-dev'
 	'php5-fpm'
-	'php5-mysql'
-	'php-apc'
+	'php5-gd'
+	'php5-geoip'
 	'php5-imagick'
 	'php5-imap'
+	'php5-intl'
 	'php5-mcrypt'
-	'php5-gd'
-	'libssh2-php'
-	'git'
-	'php5-cli'
-	'curl'
-	'php5-curl'
 	'php5-memcached'
-	'php5-geoip'
-	'php5-dev'
+	'php5-mysql'
+	'php5-pgsql'
+	'php5-sqlite'
+	'php-apc'
 )
 
 pre_install() {
@@ -33,7 +36,6 @@ pre_install() {
 	apt-get install -yq ${PACKAGES[@]} 2>&1 || return 1
 
 	curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin 2>&1 || return 1
-
     chmod +x /usr/local/bin/* 2>&1 || return 1
 
     mkdir -p /opt/roundcube /data/config /data/logs || return 1
@@ -50,12 +52,13 @@ install_roundcube() {
     mv composer.json-dist composer.json || return 1
 
     /usr/bin/composer.phar install --no-dev --optimize-autoloader --no-interaction 2>&1 || return 1
-    chown -R www-data:www-data /opt/roundcube 2>&1 || return 1
 
     return 0
 }
 
 post_install() {
+    chown -R www-data:www-data /opt/roundcube 2>&1 || return 1
+
     apt-get autoremove 2>&1 || return 1
 	apt-get autoclean 2>&1 || return 1
 	rm -fr /var/lib/apt /usr/src/build 2>&1 || return 1
