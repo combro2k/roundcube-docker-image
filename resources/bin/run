@@ -1,0 +1,28 @@
+#!/bin/bash -e
+
+if [ ! -d "/data/config" ]; then
+    mkdir -p /data/config
+fi
+
+if [ ! -d "/data/logs" ]; then
+    mkdir -p /data/logs
+fi
+
+if [ ! -f "/data/config/config.inc.php" ]; then
+    cp /opt/roundcube/config/config.inc.php.sample /data/config/config.inc.php
+    ln -s /data/config/config.inc.php /opt/roundcube/config/config.inc.php
+fi
+
+if [ ! -L "/opt/roundcube/config/config.inc.php" ]; then
+    if [ -f "/opt/roundcube/config/config.inc.php" ]; then
+        rm /opt/roundcube/config/config.inc.php
+    fi
+
+    ln -s /data/config/config.inc.php /opt/roundcube/config/config.inc.php
+fi
+
+service php5-fpm start
+
+chmod 666 /var/run/php5-fpm.sock
+
+/usr/sbin/nginx

@@ -1,46 +1,25 @@
-# roundcube-docker-image
-# Copyright (C) 2014  jitakizushi combro2k
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-# 
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+FROM combro2k/debian-debootstrap:8
 
-FROM combro2k/ubuntu-debootstrap:14.04
-MAINTAINER jitakizushi jitakizushi@gmx.com
-MAINTAINER combro2k combro2k@gmail.com
+MAINTAINER Martijn van Maurik <docker@vmaurik.nl>
 
-RUN apt-get -qq update
-# Configure database for roundcube with dbconfig-common,
-# Database type to be used by roundcube
-RUN { echo "roundcube-core  roundcube/dbconfig-install      boolean true"; \
-    echo "roundcube-core  roundcube/database-type select  sqlite3"; \
-    } |debconf-set-selections
-RUN DEBIAN_FRONTEND=noninteractive apt-get -qy install \
-    roundcube roundcube-sqlite3 curl php5-ldap php5-mysql roundcube-plugins-extra roundcube-plugins php5-memcache
+# Environment variables
+ENV HOME=/root \
+    INSTALL_LOG=/var/log/build.log
 
-RUN sed -i -re '/^\s*DocumentRoot/s, /.*, /var/lib/roundcube,' \
-    /etc/apache2/sites-available/default-ssl.conf
+# Add first the scripts to the container
+ADD resources/bin/ /usr/local/bin/
 
-RUN a2ensite default-ssl
-RUN a2enmod ssl
-RUN php5enmod mcrypt mysql memcache
+# Run the installer script
+RUN /bin/bash -l -c 'bash /usr/local/bin/setup.sh build'
 
-ADD docker-rc-init.sh /usr/local/sbin/
+# Add remaining resources
+ADD resources/etc/ /etc/
 
-EXPOSE 443
+# Run the last bits and clean up
+RUN /bin/bash -l -c 'bash /usr/local/bin/setup.sh post_install' | tee -a ${INSTALL_LOG} > /dev/null 2>&1 || exit 1
 
-VOLUME /var/lib/dbconfig-common/sqlite3/roundcube
-VOLUME /etc/roundcube
+VOLUME ["/data"]
 
-CMD ["/usr/local/sbin/docker-rc-init.sh"]
+EXPOSE 80
 
-# DB in /var/lib/dbconfig-common/sqlite3/roundcube, mount as volume to persist
+CMD ["/usr/local/bin/run"]
